@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { BriefcaseBusinessIcon, UserRoundIcon } from "lucide-react";
 
 import { GoogleIcon } from "@/components/auth/google-icon";
@@ -31,17 +30,17 @@ const roleOptions = [
 ] as const;
 
 function SignUpForm() {
-  const router = useRouter();
-
   const [loading, setLoading] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
+  const [successMessage, setSuccessMessage] = React.useState("");
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
     setErrorMessage("");
+    setSuccessMessage("");
 
     const formData = new FormData(event.currentTarget);
 
@@ -85,8 +84,11 @@ function SignUpForm() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      // With requireEmailVerification enabled, there is no session yet.
+      // Ask the user to verify instead of redirecting as if signed in.
+      setSuccessMessage(
+        "Account created! Check your email to verify your account before signing in."
+      );
     } catch {
       setErrorMessage("Something went wrong. Please try again.");
     } finally {
@@ -239,6 +241,15 @@ function SignUpForm() {
           </Link>
         </span>
       </label>
+
+      {successMessage && (
+        <p
+          role="status"
+          className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-center text-sm text-foreground/90"
+        >
+          {successMessage}
+        </p>
+      )}
 
       {errorMessage && (
         <p

@@ -43,7 +43,11 @@ function SignInForm() {
       });
 
       if (error) {
-        setErrorMessage(error.message || "Invalid email or password.");
+        setErrorMessage(
+          error.code === "EMAIL_NOT_VERIFIED"
+            ? "Please verify your email before signing in. Check your inbox for the verification link."
+            : error.message || "Invalid email or password."
+        );
         return;
       }
 

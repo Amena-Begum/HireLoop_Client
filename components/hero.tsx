@@ -56,7 +56,7 @@ function Hero() {
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x bottom-0 -z-10 h-7 bg-gradient-to-t from-background via-background/85 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-56 bg-gradient-to-t from-background via-background/90 to-transparent sm:h-64"
       />
 
       <div className="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:px-16 lg:pb-[72px] lg:pt-[176px]">

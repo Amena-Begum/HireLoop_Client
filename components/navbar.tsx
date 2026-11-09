@@ -6,6 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { MenuIcon } from "lucide-react"
 
+import { authClient } from "@/lib/auth-client"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Sheet,
@@ -47,6 +48,8 @@ function Logo({ className }: { className?: string }) {
 function Navbar() {
   const pathname = usePathname()
   const [open, setOpen] = React.useState(false)
+  const { data: session } = authClient.useSession()
+  const user = session?.user ?? null
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
@@ -84,20 +87,41 @@ function Navbar() {
           <span aria-hidden="true" className="h-5 w-px bg-border" />
 
           <div className="flex items-center gap-8">
-            <Link
-              href={SIGN_IN_HREF}
-              className="text-[15px] font-medium text-brand-soft transition-colors hover:text-brand-soft/80"
-            >
-              Sign In
-            </Link>
-            <Link
-              href={GET_STARTED_HREF}
-              className={buttonVariants({
-                className: "h-11 rounded-lg px-6 text-[15px]",
-              })}
-            >
-              Get Started
-            </Link>
+            {user ? (
+              <>
+                <span
+                  className="max-w-[200px] truncate text-sm text-foreground/70"
+                  title={user.email}
+                >
+                  {user.email}
+                </span>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-11 rounded-lg px-6 text-[15px]"
+                  onClick={() => authClient.signOut()}
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={SIGN_IN_HREF}
+                  className="text-[15px] font-medium text-brand-soft transition-colors hover:text-brand-soft/80"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href={GET_STARTED_HREF}
+                  className={buttonVariants({
+                    className: "h-11 rounded-lg px-6 text-[15px]",
+                  })}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -160,25 +184,40 @@ function Navbar() {
             </nav>
 
             <SheetFooter className="border-t border-border p-4">
-              <Link
-                href={SIGN_IN_HREF}
-                onClick={() => setOpen(false)}
-                className={buttonVariants({
-                  variant: "outline",
-                  className: "h-11 w-full rounded-lg text-[15px]",
-                })}
-              >
-                Sign In
-              </Link>
-              <Link
-                href={GET_STARTED_HREF}
-                onClick={() => setOpen(false)}
-                className={buttonVariants({
-                  className: "h-11 w-full rounded-lg text-[15px]",
-                })}
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <Button
+                  variant="outline"
+                  className="h-11 w-full rounded-lg text-[15px]"
+                  onClick={() => {
+                    authClient.signOut()
+                    setOpen(false)
+                  }}
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <>
+                  <Link
+                    href={SIGN_IN_HREF}
+                    onClick={() => setOpen(false)}
+                    className={buttonVariants({
+                      variant: "outline",
+                      className: "h-11 w-full rounded-lg text-[15px]",
+                    })}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href={GET_STARTED_HREF}
+                    onClick={() => setOpen(false)}
+                    className={buttonVariants({
+                      className: "h-11 w-full rounded-lg text-[15px]",
+                    })}
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </SheetFooter>
           </SheetContent>
         </Sheet>
