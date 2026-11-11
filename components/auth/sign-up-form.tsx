@@ -84,10 +84,10 @@ function SignUpForm() {
         return;
       }
 
-      // With requireEmailVerification enabled, there is no session yet.
-      // Ask the user to verify instead of redirecting as if signed in.
+      // Email verification is currently disabled — the user is created
+      // immediately. Point them to sign in.
       setSuccessMessage(
-        "Account created! Check your email to verify your account before signing in."
+        "Account created! You can now sign in with your email and password."
       );
     } catch {
       setErrorMessage("Something went wrong. Please try again.");

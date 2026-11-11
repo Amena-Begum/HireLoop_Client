@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import { MenuIcon } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
+import { UserAvatar } from "@/components/user-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Sheet,
@@ -32,8 +33,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function Logo({ className }: { className?: string }) {
-  return (
+function Logo({ className }: { className?: string }) {  return (
     <Image
       src="/hireloop-logo.png"
       alt="HireLoop"
@@ -89,12 +89,20 @@ function Navbar() {
           <div className="flex items-center gap-8">
             {user ? (
               <>
-                <span
-                  className="max-w-[200px] truncate text-sm text-foreground/70"
-                  title={user.email}
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-3 rounded-full transition-colors hover:opacity-80"
                 >
-                  {user.email}
-                </span>
+                  <UserAvatar name={user.name} image={user.image} />
+                  {user.name && (
+                    <span
+                      className="max-w-[160px] truncate text-sm font-medium text-foreground/80"
+                      title={user.name}
+                    >
+                      {user.name}
+                    </span>
+                  )}
+                </Link>
                 <Button
                   variant="outline"
                   size="lg"
@@ -183,18 +191,30 @@ function Navbar() {
               ))}
             </nav>
 
-            <SheetFooter className="border-t border-border p-4">
+            <SheetFooter className="gap-3 border-t border-border p-4">
               {user ? (
-                <Button
-                  variant="outline"
-                  className="h-11 w-full rounded-lg text-[15px]"
-                  onClick={() => {
-                    authClient.signOut()
-                    setOpen(false)
-                  }}
-                >
-                  Sign Out
-                </Button>
+                <>
+                  <Link
+                    href="/profile"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3"
+                  >
+                    <UserAvatar name={user.name} image={user.image} />
+                    <span className="truncate text-sm font-medium text-foreground/80 underline-offset-4 hover:underline">
+                      {user.name}
+                    </span>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full rounded-lg text-[15px]"
+                    onClick={() => {
+                      authClient.signOut()
+                      setOpen(false)
+                    }}
+                  >
+                    Sign Out
+                  </Button>
+                </>
               ) : (
                 <>
                   <Link
@@ -226,4 +246,4 @@ function Navbar() {
   )
 }
 
-export { Navbar }
+export { Navbar, Logo }
