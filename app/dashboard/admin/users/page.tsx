@@ -1,6 +1,10 @@
 import type { Metadata } from "next"
 import { BanIcon, RefreshCcwIcon, Trash2Icon, UserRoundCogIcon } from "lucide-react"
 
+import { PageHeader } from "@/components/dashboard/page-header"
+import { StatCard, StatGrid } from "@/components/dashboard/stat-card"
+import { StatusPill } from "@/components/status-pill"
+
 export const metadata: Metadata = {
   title: "Manage Users",
   description: "Review, filter, and manage platform access for all users.",
@@ -48,11 +52,6 @@ const users = [
   },
 ] as const
 
-const roleStyles: Record<string, string> = {
-  Seeker: "bg-sky-500/15 text-sky-400",
-  Recruiter: "bg-primary/15 text-primary",
-}
-
 const actionLabels: Record<string, { label: string; className: string; icon: typeof BanIcon }> = {
   "make-recruiter": {
     label: "Make Recruiter",
@@ -84,53 +83,38 @@ const actionLabels: Record<string, { label: string; className: string; icon: typ
 const AdminUsersPage = () => {
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            User Management
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Review, filter, and manage platform access for all users.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-10 items-center rounded-lg border border-border/60 bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            All Roles
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-          >
-            Export List
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="User Management"
+        description="Review, filter, and manage platform access for all users."
+        action={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-10 items-center rounded-lg border border-border/60 bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              All Roles
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+            >
+              Export List
+            </button>
+          </div>
+        }
+      />
 
       {/* Stats */}
-      <ul className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <StatGrid>
         {stats.map((stat) => (
-          <li
+          <StatCard
             key={stat.label}
-            className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-5"
-          >
-            <span className="text-2xl font-semibold tracking-tight text-foreground xl:text-3xl">
-              {stat.value}
-            </span>
-            <span className="grid">
-              <span className="text-xs text-muted-foreground">
-                {stat.label}
-              </span>
-              <span className="text-xs text-muted-foreground/70">
-                {stat.hint}
-              </span>
-            </span>
-          </li>
+            value={stat.value}
+            label={stat.label}
+            hint={stat.hint}
+          />
         ))}
-      </ul>
+      </StatGrid>
 
       {/* Users table */}
       <section className="rounded-xl border border-border/60 bg-card">
@@ -169,11 +153,7 @@ const AdminUsersPage = () => {
                     {user.email}
                   </td>
                   <td className="px-5 py-4">
-                    <span
-                      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${roleStyles[user.role]}`}
-                    >
-                      {user.role}
-                    </span>
+                    <StatusPill status={user.role} />
                   </td>
                   <td className="hidden px-5 py-4 whitespace-nowrap text-muted-foreground lg:table-cell">
                     {user.joined}

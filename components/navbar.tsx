@@ -29,6 +29,13 @@ const navLinks = [
 const SIGN_IN_HREF = "/sign-in"
 const GET_STARTED_HREF = "/sign-up"
 
+/** Dashboard home for the signed-in user's role (defaults to the seeker area). */
+function dashboardHrefFor(role?: string | null) {
+  if (role === "recruiter") return "/dashboard/recruiter"
+  if (role === "admin") return "/dashboard/admin"
+  return "/dashboard/seeker"
+}
+
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
@@ -94,14 +101,20 @@ function Navbar() {
                   className="flex items-center gap-3 rounded-full transition-colors hover:opacity-80"
                 >
                   <UserAvatar name={user.name} image={user.image} />
-                  {user.name && (
-                    <span
-                      className="max-w-[160px] truncate text-sm font-medium text-foreground/80"
-                      title={user.name}
-                    >
-                      {user.name}
-                    </span>
-                  )}
+                  <span
+                    className="max-w-[160px] truncate text-sm font-medium text-foreground/80"
+                    title={user.name ?? "Guest User"}
+                  >
+                    {user.name || "Guest User"}
+                  </span>
+                </Link>
+                <Link
+                  href={dashboardHrefFor(user.role)}
+                  className={buttonVariants({
+                    className: "h-11 rounded-lg px-6 text-[15px]",
+                  })}
+                >
+                  Dashboard
                 </Link>
                 <Button
                   variant="outline"
@@ -201,8 +214,17 @@ function Navbar() {
                   >
                     <UserAvatar name={user.name} image={user.image} />
                     <span className="truncate text-sm font-medium text-foreground/80 underline-offset-4 hover:underline">
-                      {user.name}
+                      {user.name || "Guest User"}
                     </span>
+                  </Link>
+                  <Link
+                    href={dashboardHrefFor(user.role)}
+                    onClick={() => setOpen(false)}
+                    className={buttonVariants({
+                      className: "h-11 w-full rounded-lg text-[15px]",
+                    })}
+                  >
+                    Dashboard
                   </Link>
                   <Button
                     variant="outline"

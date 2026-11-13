@@ -10,6 +10,10 @@ import {
   XCircleIcon,
 } from "lucide-react"
 
+import { PageHeader } from "@/components/dashboard/page-header"
+import { StatCard, StatGrid } from "@/components/dashboard/stat-card"
+import { StatusPill } from "@/components/status-pill"
+
 const stats = [
   { label: "Total Job Posts", value: "48", icon: FileTextIcon, trend: "+6%" },
   { label: "Total Applicants", value: "1,284", icon: UsersIcon, trend: "+14%" },
@@ -48,13 +52,6 @@ const applications = [
   },
 ] as const
 
-const statusStyles: Record<string, string> = {
-  Shortlisted: "bg-emerald-500/15 text-emerald-400",
-  "Under Review": "bg-amber-500/15 text-amber-400",
-  "Interview Scheduled": "bg-primary/15 text-primary",
-  Rejected: "bg-red-500/15 text-red-400",
-}
-
 export const metadata: Metadata = {
   title: "Recruiter Dashboard",
   description: "Your HireLoop recruiter dashboard.",
@@ -64,42 +61,23 @@ function RecruiterDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Welcome header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome back, Alex Sterling
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Here&apos;s an overview of your hiring activity.
-        </p>
-      </div>
+      <PageHeader
+        title="Welcome back, Alex Sterling"
+        description="Here's an overview of your hiring activity."
+      />
 
       {/* Stats row */}
-      <ul className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <StatGrid>
         {stats.map((stat) => (
-          <li
+          <StatCard
             key={stat.label}
-            className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-5"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span
-                aria-hidden="true"
-                className="grid size-9 place-items-center rounded-lg bg-primary/15 text-primary"
-              >
-                <stat.icon className="size-4" />
-              </span>
-              {stat.trend && (
-                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                  {stat.trend}
-                </span>
-              )}
-            </div>
-            <span className="text-2xl font-semibold tracking-tight text-foreground xl:text-3xl">
-              {stat.value}
-            </span>
-            <span className="text-xs text-muted-foreground">{stat.label}</span>
-          </li>
+            icon={stat.icon}
+            value={stat.value}
+            label={stat.label}
+            trend={stat.trend ?? undefined}
+          />
         ))}
-      </ul>
+      </StatGrid>
 
       {/* 2/3 + 1/3 grid */}
       <div className="grid gap-6 xl:grid-cols-3">
@@ -157,11 +135,7 @@ function RecruiterDashboardPage() {
                       {application.experience}
                     </td>
                     <td className="px-4 py-4 sm:px-5">
-                      <span
-                        className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[application.status]}`}
-                      >
-                        {application.status}
-                      </span>
+                      <StatusPill status={application.status} />
                     </td>
                   </tr>
                 ))}

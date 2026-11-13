@@ -1,6 +1,10 @@
 import type { Metadata } from "next"
 import { CreditCardIcon, TrendingUpIcon, UsersIcon } from "lucide-react"
 
+import { PageHeader } from "@/components/dashboard/page-header"
+import { StatCard, StatGrid } from "@/components/dashboard/stat-card"
+import { StatusPill } from "@/components/status-pill"
+
 export const metadata: Metadata = {
   title: "Payments & Subscriptions",
   description: "Monitor revenue, subscriptions, and payment activity platform-wide.",
@@ -68,52 +72,26 @@ const transactions = [
   },
 ] as const
 
-const statusStyles: Record<string, string> = {
-  Success: "bg-emerald-500/15 text-emerald-400",
-  Pending: "bg-amber-500/15 text-amber-400",
-  Failed: "bg-red-500/15 text-red-400",
-}
-
 const AdminPaymentsPage = () => {
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Payments &amp; Subscriptions
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Monitor revenue, subscriptions, and payment activity platform-wide.
-        </p>
-      </div>
+      <PageHeader
+        title="Payments & Subscriptions"
+        description="Monitor revenue, subscriptions, and payment activity platform-wide."
+      />
 
       {/* Stats */}
-      <ul className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <StatGrid>
         {stats.map((stat) => (
-          <li
+          <StatCard
             key={stat.label}
-            className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-5"
-          >
-            <span
-              aria-hidden="true"
-              className="grid size-9 place-items-center rounded-lg bg-primary/15 text-primary"
-            >
-              <stat.icon className="size-4" />
-            </span>
-            <span className="text-2xl font-semibold tracking-tight text-foreground xl:text-3xl">
-              {stat.value}
-            </span>
-            <span className="grid">
-              <span className="text-xs text-muted-foreground">
-                {stat.label}
-              </span>
-              <span className="text-xs text-muted-foreground/70">
-                {stat.hint}
-              </span>
-            </span>
-          </li>
+            icon={stat.icon}
+            value={stat.value}
+            label={stat.label}
+            hint={stat.hint}
+          />
         ))}
-      </ul>
+      </StatGrid>
 
       {/* Transactions table */}
       <section className="rounded-xl border border-border/60 bg-card">
@@ -167,11 +145,7 @@ const AdminPaymentsPage = () => {
                     {transaction.date}
                   </td>
                   <td className="px-5 py-4 sm:px-6">
-                    <span
-                      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[transaction.status]}`}
-                    >
-                      {transaction.status}
-                    </span>
+                    <StatusPill status={transaction.status} />
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { toast } from "sonner"
 import { FileTextIcon, Trash2Icon, UploadIcon, UserRoundIcon } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
@@ -40,7 +41,31 @@ function ProfileFields({ user }: { user: { id: string; name?: string | null; ema
   const [bio, setBio] = React.useState("")
   const [skills, setSkills] = React.useState("")
   const [resumeFile, setResumeFile] = React.useState<string | null>(null)
+  const [resumeData, setResumeData] = React.useState<string | null>(null)
+  const [resumeType, setResumeType] = React.useState<string | null>(null)
+  const [hasSavedResume, setHasSavedResume] = React.useState(false)
   const [saved, setSaved] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+  const [error, setError] = React.useState("")
+
+  // Prefill the professional fields from the profiles collection.
+  React.useEffect(() => {
+    let cancelled = false
+    fetch("/api/profile")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { profile?: { headline?: string; bio?: string; skills?: string[]; resumeName?: string | null } } | null) => {
+        if (cancelled || !data?.profile) return
+        setHeadline(data.profile.headline ?? "")
+        setBio(data.profile.bio ?? "")
+        setSkills((data.profile.skills ?? []).join(", "))
+        setResumeFile(data.profile.resumeName ?? null)
+        setHasSavedResume(Boolean(data.profile.resumeName))
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const [photo, setPhoto] = React.useState(user.image ?? null)
   const [photoBusy, setPhotoBusy] = React.useState(false)
@@ -64,6 +89,7 @@ function ProfileFields({ user }: { user: { id: string; name?: string | null; ema
       setPhoto(nextPhoto)
       // Refresh the session so navbar/sidebar avatars update immediately.
       await refetch()
+      toast.success(nextPhoto ? "Profile photo updated" : "Profile photo removed")
     } catch {
       setPhotoError("Something went wrong while saving your photo.")
     } finally {
@@ -96,14 +122,113 @@ function ProfileFields({ user }: { user: { id: string; name?: string | null; ema
     event: React.ChangeEvent<HTMLInputElement>
   ) {
     const file = event.target.files?.[0]
-    if (file) setResumeFile(file.name)
+    event.target.value = ""
+    if (!file) return
+
+    if (file.size > 4 * 1024 * 1024) {
+      setError("Resume must be under 4 MB.")
+      return
+    }
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = () => reject(new Error("read failed"))
+        reader.readAsDataURL(file)
+      })
+      setError("")
+      setResumeFile(file.name)
+      setResumeData(dataUrl)
+      setResumeType(file.type || "application/octet-stream")
+    } catch {
+      setError("That file couldn't be read. Try another one.")
+    }
+  }
+
+  /** Deletes the stored resume immediately (no Save needed). */
+  async function handleResumeRemove() {
+    setError("")
+    setSaving(true)
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ headline, bio, skills, resumeChanged: true, resume: null }),
+      })
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as
+          | { message?: string }
+          | null
+        setError(data?.message ?? "Couldn't remove the resume. Try again.")
+        return
+      }
+      setResumeFile(null)
+      setResumeData(null)
+      setResumeType(null)
+      setHasSavedResume(false)
+      toast.success("Resume removed")
+    } catch {
+      setError("Network error — try again.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleUpdateProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    // TODO: persist profile fields to your profile API when the backend is ready.
-    setSaved(true)
-    window.setTimeout(() => setSaved(false), 2500)
+    setError("")
+    setSaved(false)
+
+    if (!fullName.trim()) {
+      setError("Full name is required.")
+      return
+    }
+
+    setSaving(true)
+    try {
+      // Name lives on the better-auth user record.
+      if (fullName.trim() !== (user.name ?? "")) {
+        const { error: nameError } = await authClient.updateUser({
+          name: fullName.trim(),
+        })
+        if (nameError) {
+          setError(nameError.message ?? "Couldn't save your name.")
+          return
+        }
+      }
+
+      // Everything else lives in the profiles collection. Only send the
+      // resume when it changed, so an untouched saved resume isn't wiped.
+      const body: Record<string, unknown> = { headline, bio, skills }
+      if (resumeData !== null) {
+        body.resumeChanged = true
+        body.resume = { name: resumeFile, data: resumeData, type: resumeType }
+      }
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as
+          | { message?: string }
+          | null
+        setError(data?.message ?? "Couldn't save your profile. Try again.")
+        return
+      }
+
+      await refetch()
+      setHasSavedResume(Boolean(resumeFile))
+      setResumeData(null)
+      setSaved(true)
+      toast.success("Profile saved")
+      window.setTimeout(() => setSaved(false), 2500)
+    } catch {
+      setError("Something went wrong. Please try again.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -297,10 +422,50 @@ function ProfileFields({ user }: { user: { id: string; name?: string | null; ema
             </label>
 
             {resumeFile && (
-              <p className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                <FileTextIcon className="size-3.5 shrink-0 text-primary" />
-                {resumeFile}
-              </p>
+              <span className="flex flex-col gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <FileTextIcon className="size-3.5 shrink-0 text-primary" />
+                  <span className="min-w-0 truncate font-medium text-foreground">
+                    {resumeFile}
+                  </span>
+                </span>
+                <span className="flex flex-wrap items-center gap-2">
+                  {/* Open only works for the saved copy (not a just-picked file). */}
+                  {hasSavedResume && resumeData === null ? (
+                    <>
+                      <a
+                        href="/api/profile/resume"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline-offset-4 hover:underline"
+                      >
+                        Open
+                      </a>
+                      <span aria-hidden="true">·</span>
+                      <a
+                        href="/api/profile/resume?download=1"
+                        className="text-primary underline-offset-4 hover:underline"
+                      >
+                        Download
+                      </a>
+                      <span aria-hidden="true">·</span>
+                    </>
+                  ) : (
+                    <span className="text-amber-400">
+                      Click “Update Profile” to save it first
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleResumeRemove}
+                    disabled={saving}
+                    className="inline-flex items-center gap-1 text-red-400 underline-offset-4 hover:underline disabled:opacity-50"
+                  >
+                    <Trash2Icon className="size-3 shrink-0" />
+                    {saving ? "Removing…" : "Remove"}
+                  </button>
+                </span>
+              </span>
             )}
           </div>
         </section>
@@ -308,11 +473,20 @@ function ProfileFields({ user }: { user: { id: string; name?: string | null; ema
         <Button
           type="submit"
           size="lg"
+          disabled={saving}
           className="h-11 w-full rounded-lg text-sm"
         >
-          Update Profile
+          {saving ? "Saving…" : "Update Profile"}
         </Button>
-        {saved && (
+        {error && (
+          <p
+            role="alert"
+            className="rounded-lg bg-red-500/15 px-3 py-2 text-center text-xs font-medium text-red-400"
+          >
+            {error}
+          </p>
+        )}
+        {saved && !error && (
           <p
             role="status"
             className="rounded-lg bg-emerald-500/15 px-3 py-2 text-center text-xs font-medium text-emerald-400"

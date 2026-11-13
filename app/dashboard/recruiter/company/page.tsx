@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { toast } from "sonner"
 import {
   BuildingIcon,
   CheckIcon,
@@ -59,6 +60,7 @@ function MyCompanyPage() {
 
     // TODO: persist to your company API route when the backend is ready.
     setSaved(true)
+    toast.success("Company profile saved")
     window.setTimeout(() => setSaved(false), 2500)
   }
 

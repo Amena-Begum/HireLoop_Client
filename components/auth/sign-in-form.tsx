@@ -4,6 +4,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { GoogleIcon } from "@/components/auth/google-icon";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -35,26 +36,37 @@ function SignInForm() {
     setLoading(true);
 
     try {
-      const { error } = await authClient.signIn.email({
+      const { data, error } = await authClient.signIn.email({
         email,
         password,
         rememberMe,
-        callbackURL: "/",
+        // No callbackURL here — it would force a redirect to "/" and
+        // override the role-based dashboard route below.
       });
 
       if (error) {
-        setErrorMessage(
+        const message =
           error.code === "EMAIL_NOT_VERIFIED"
             ? "Please verify your email before signing in. Check your inbox for the verification link."
-            : error.message || "Invalid email or password."
-        );
+            : error.message || "Invalid email or password.";
+        setErrorMessage(message);
+        toast.error(message);
         return;
       }
 
-      router.push("/");
+      // Send each role straight to its own dashboard home.
+      const role = (data?.user as { role?: string } | undefined)?.role;
+      const dashboard =
+        role === "admin"
+          ? "/dashboard/admin"
+          : role === "recruiter"
+            ? "/dashboard/recruiter"
+            : "/dashboard/seeker";
+      router.push(dashboard);
       router.refresh();
     } catch {
       setErrorMessage("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -71,11 +83,14 @@ function SignInForm() {
       });
 
       if (error) {
-        setErrorMessage(error.message || "Google sign-in failed.");
+        const message = error.message || "Google sign-in failed.";
+        setErrorMessage(message);
+        toast.error(message);
         setGoogleLoading(false);
       }
     } catch {
       setErrorMessage("Unable to sign in with Google.");
+      toast.error("Unable to sign in with Google.");
       setGoogleLoading(false);
     }
   }

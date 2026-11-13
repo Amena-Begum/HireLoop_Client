@@ -10,6 +10,9 @@ import {
   WalletIcon,
 } from "lucide-react"
 
+import { PageHeader } from "@/components/dashboard/page-header"
+import { StatusPill } from "@/components/status-pill"
+
 const stats = [
   {
     label: "Total Users",
@@ -87,12 +90,6 @@ const transactions = [
   },
 ] as const
 
-const pillStyles: Record<(typeof transactions)[number]["status"], string> = {
-  Success: "bg-emerald-500/15 text-emerald-400",
-  Pending: "bg-amber-500/15 text-amber-400",
-  Failed: "bg-red-500/15 text-red-400",
-}
-
 const toneClasses: Record<string, string> = {
   primary: "bg-primary/15 text-primary",
   muted: "bg-muted text-muted-foreground",
@@ -107,31 +104,28 @@ function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Dashboard Overview
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Real-time platform performance and growth metrics.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            Last 30 Days
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-          >
-            <DownloadIcon className="size-4" />
-            Export Report
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Dashboard Overview"
+        description="Real-time platform performance and growth metrics."
+        className="sm:items-end"
+        action={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              Last 30 Days
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+            >
+              <DownloadIcon className="size-4" />
+              Export Report
+            </button>
+          </div>
+        }
+      />
 
       {/* Stats row */}
       <ul className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
@@ -218,11 +212,7 @@ function AdminDashboardPage() {
                     {transaction.date}
                   </td>
                   <td className="px-5 py-4 sm:px-6">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${pillStyles[transaction.status]}`}
-                    >
-                      {transaction.status}
-                    </span>
+                    <StatusPill status={transaction.status} />
                   </td>
                 </tr>
               ))}

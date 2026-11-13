@@ -60,7 +60,7 @@ function DashboardHeader() {
             <UserAvatar name={user.name} image={user.image} />
             {user.name && (
               <span
-                className="hidden max-w-[120px] truncate text-sm font-medium text-foreground/80 sm:inline"
+                className="max-w-[120px] truncate text-sm font-medium text-foreground/80"
                 title={user.name}
               >
                 {user.name}

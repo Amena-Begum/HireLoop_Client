@@ -2,22 +2,29 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { toast } from "sonner"
 import { ArrowLeftIcon, BriefcaseBusinessIcon, CheckIcon } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
-
-const WORK_MODES = ["On-site", "Hybrid", "Remote"] as const
-const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contract", "Freelance", "Internship"] as const
-const CURRENCIES = ["$", "€", "£"] as const
+import { ChipGroup } from "@/components/ui/chip"
+import { EmptyState } from "@/components/dashboard/empty-state"
+import {
+  CURRENCIES,
+  EMPLOYMENT_TYPES,
+  WORK_MODES,
+  type Currency,
+  type EmploymentType,
+  type WorkMode,
+} from "@/lib/constants"
 
 type FormState = {
   title: string
   company: string
   description: string
   location: string
-  workMode: (typeof WORK_MODES)[number]
-  employmentType: (typeof EMPLOYMENT_TYPES)[number]
-  currency: (typeof CURRENCIES)[number]
+  workMode: WorkMode
+  employmentType: EmploymentType
+  currency: Currency
   salaryMin: string
   salaryMax: string
   skills: string
@@ -41,6 +48,7 @@ function CreateJobPostPage() {
   const [error, setError] = React.useState("")
   const [posted, setPosted] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
+  const [jobRef, setJobRef] = React.useState("")
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -77,11 +85,30 @@ function CreateJobPostPage() {
       return
     }
 
-    // TODO: POST to your jobs API route and persist to the database.
     setSaving(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400))
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      const data = (await response.json().catch(() => null)) as
+        | { job?: { ref: string }; message?: string }
+        | null
+
+      if (!response.ok || !data?.job) {
+        toast.error(
+          data?.message ??
+            "Something went wrong while posting the job. Try again."
+        )
+        return
+      }
+
+      setJobRef(data.job.ref)
       setPosted(true)
+      toast.success("Job post created")
+    } catch {
+      toast.error("Network error — check your connection and try again.")
     } finally {
       setSaving(false)
     }
@@ -109,20 +136,19 @@ function CreateJobPostPage() {
       </div>
 
       {posted ? (
-        <section className="flex flex-col items-center gap-3 rounded-xl border border-border/60 bg-card p-10 text-center">
-          <span
-            aria-hidden="true"
-            className="grid size-12 place-items-center rounded-full bg-emerald-500/15 text-emerald-400"
-          >
-            <CheckIcon className="size-5" />
-          </span>
-          <h2 className="text-lg font-semibold text-foreground">
-            Job post created
-          </h2>
-          <p className="max-w-md text-sm text-muted-foreground">
-            &ldquo;{form.title.trim()}&rdquo; is live and visible to job
-            seekers. Applications will appear in your dashboard.
-          </p>
+        <EmptyState
+          icon={CheckIcon}
+          title="Job post created"
+          iconClassName="bg-emerald-500/15 text-emerald-400"
+          message={
+            <>
+              &ldquo;{form.title.trim()}&rdquo; is live and visible to job
+              seekers
+              {jobRef ? <> as <span className="font-mono text-xs text-foreground">{jobRef}</span></> : null}
+              . Applications will appear in your dashboard.
+            </>
+          }
+        >
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/dashboard/recruiter"
@@ -141,7 +167,7 @@ function CreateJobPostPage() {
               Post another job
             </button>
           </div>
-        </section>
+        </EmptyState>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Job details */}
@@ -239,23 +265,12 @@ function CreateJobPostPage() {
                   <span className="text-sm text-foreground/90">
                     Work mode
                   </span>
-                  <div className="flex flex-wrap gap-2">
-                    {WORK_MODES.map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        aria-pressed={form.workMode === mode}
-                        onClick={() => setField("workMode", mode)}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                          form.workMode === mode
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {mode}
-                      </button>
-                    ))}
-                  </div>
+                  <ChipGroup
+                    options={WORK_MODES}
+                    value={form.workMode}
+                    onChange={(mode) => setField("workMode", mode)}
+                    ariaLabel="Work mode"
+                  />
                 </div>
               </div>
 
@@ -263,45 +278,24 @@ function CreateJobPostPage() {
                 <span className="text-sm text-foreground/90">
                   Employment type
                 </span>
-                <div className="flex flex-wrap gap-2">
-                  {EMPLOYMENT_TYPES.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      aria-pressed={form.employmentType === type}
-                      onClick={() => setField("employmentType", type)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        form.employmentType === type
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
+                <ChipGroup
+                  options={EMPLOYMENT_TYPES}
+                  value={form.employmentType}
+                  onChange={(type) => setField("employmentType", type)}
+                  ariaLabel="Employment type"
+                />
               </div>
 
               <div className="grid gap-5 sm:grid-cols-[auto_1fr_1fr]">
                 <div className="grid gap-2">
                   <span className="text-sm text-foreground/90">Currency</span>
-                  <div className="flex gap-2">
-                    {CURRENCIES.map((currency) => (
-                      <button
-                        key={currency}
-                        type="button"
-                        aria-pressed={form.currency === currency}
-                        onClick={() => setField("currency", currency)}
-                        className={`size-10 rounded-lg text-sm font-medium transition-colors ${
-                          form.currency === currency
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {currency}
-                      </button>
-                    ))}
-                  </div>
+                  <ChipGroup
+                    options={CURRENCIES}
+                    value={form.currency}
+                    onChange={(currency) => setField("currency", currency)}
+                    ariaLabel="Currency"
+                    optionClassName="size-10 rounded-lg"
+                  />
                 </div>
                 <div className="grid gap-2">
                   <label

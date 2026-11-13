@@ -1,6 +1,10 @@
 import type { Metadata } from "next"
 import { EyeIcon, HeartIcon, TimerIcon } from "lucide-react"
 
+import { PageHeader } from "@/components/dashboard/page-header"
+import { StatCard, StatGrid } from "@/components/dashboard/stat-card"
+import { StatusPill } from "@/components/status-pill"
+
 export const metadata: Metadata = {
   title: "Manage Jobs",
   description: "Review, edit, and moderate all job posts across the platform.",
@@ -55,48 +59,26 @@ const jobs = [
   },
 ] as const
 
-const statusStyles: Record<string, string> = {
-  Active: "bg-emerald-500/15 text-emerald-400",
-  Paused: "bg-amber-500/15 text-amber-400",
-  Closed: "bg-muted text-muted-foreground",
-}
-
 const AdminJobsPage = () => {
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Manage Jobs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review, edit, and moderate all job posts across the platform.
-        </p>
-      </div>
+      <PageHeader
+        title="Manage Jobs"
+        description="Review, edit, and moderate all job posts across the platform."
+      />
 
       {/* Stats */}
-      <ul className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+      <StatGrid className="xl:grid-cols-3">
         {stats.map((stat) => (
-          <li
+          <StatCard
             key={stat.label}
-            className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-5"
-          >
-            <span
-              aria-hidden="true"
-              className="grid size-9 place-items-center rounded-lg bg-primary/15 text-primary"
-            >
-              <stat.icon className="size-4" />
-            </span>
-            <span className="text-2xl font-semibold tracking-tight text-foreground xl:text-3xl">
-              {stat.value}
-            </span>
-            <span className="grid">
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
-              <span className="text-xs text-muted-foreground/70">
-                {stat.hint}
-              </span>
-            </span>
-          </li>
+            icon={stat.icon}
+            value={stat.value}
+            label={stat.label}
+            hint={stat.hint}
+          />
         ))}
-      </ul>
+      </StatGrid>
 
       {/* Jobs table */}
       <section className="rounded-xl border border-border/60 bg-card">
@@ -138,11 +120,7 @@ const AdminJobsPage = () => {
                     {job.posted}
                   </td>
                   <td className="px-5 py-4 sm:px-6">
-                    <span
-                      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[job.status]}`}
-                    >
-                      {job.status}
-                    </span>
+                    <StatusPill status={job.status} />
                   </td>
                 </tr>
               ))}

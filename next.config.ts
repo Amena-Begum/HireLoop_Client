@@ -14,6 +14,13 @@ const nextConfig: NextConfig = {
         destination: "/dashboard/:path*",
         permanent: true,
       },
+      // Common singular typo of /dashboard/:role/settings — send it to the
+      // right place for every role (seeker, recruiter, admin).
+      {
+        source: "/dashboard/:role/setting",
+        destination: "/dashboard/:role/settings",
+        permanent: true,
+      },
     ]
   },
 }

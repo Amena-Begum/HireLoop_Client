@@ -2,8 +2,9 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import Link from "next/link";
-import { BriefcaseBusinessIcon, UserRoundIcon } from "lucide-react";
+import { BriefcaseBusinessIcon, ShieldCheckIcon, UserRoundIcon } from "lucide-react";
 
 import { GoogleIcon } from "@/components/auth/google-icon";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -20,12 +21,21 @@ const roleOptions = [
     label: "Job Seeker",
     description: "Find your next role",
     icon: UserRoundIcon,
+    iconClass: "text-primary",
   },
   {
     value: "recruiter",
     label: "Recruiter",
     description: "Hire great talent",
     icon: BriefcaseBusinessIcon,
+    iconClass: "text-primary",
+  },
+  {
+    value: "admin",
+    label: "Administrator",
+    description: "Manage the platform",
+    icon: ShieldCheckIcon,
+    iconClass: "text-amber-400",
   },
 ] as const;
 
@@ -75,12 +85,14 @@ function SignUpForm() {
         name,
         email,
         password,
-        role: role as "job-seeker" | "recruiter",
+        role: role as "job-seeker" | "recruiter" | "admin",
         callbackURL: "/",
       });
 
       if (error) {
-        setErrorMessage(error.message || "Registration failed.");
+        const message = error.message || "Registration failed.";
+        setErrorMessage(message);
+        toast.error(message);
         return;
       }
 
@@ -89,8 +101,10 @@ function SignUpForm() {
       setSuccessMessage(
         "Account created! You can now sign in with your email and password."
       );
+      toast.success("Account created! You can now sign in.");
     } catch {
       setErrorMessage("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -107,11 +121,14 @@ function SignUpForm() {
       });
 
       if (error) {
-        setErrorMessage(error.message || "Google sign up failed.");
+        const message = error.message || "Google sign up failed.";
+        setErrorMessage(message);
+        toast.error(message);
         setGoogleLoading(false);
       }
     } catch {
       setErrorMessage("Unable to sign up with Google.");
+      toast.error("Unable to sign up with Google.");
       setGoogleLoading(false);
     }
   }
@@ -124,7 +141,7 @@ function SignUpForm() {
       <div className="grid gap-2">
         <Label>Choose your role</Label>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           {roleOptions.map((option, index) => (
             <label
               key={option.value}
@@ -142,7 +159,9 @@ function SignUpForm() {
                 className="sr-only"
               />
 
-              <option.icon className="mt-0.5 size-5 shrink-0 text-primary" />
+              <option.icon
+                className={cn("mt-0.5 size-5 shrink-0", option.iconClass)}
+              />
 
               <span className="grid gap-0.5">
                 <span className="text-sm font-medium text-foreground">
