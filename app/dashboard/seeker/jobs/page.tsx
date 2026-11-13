@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { headers } from "next/headers"
 import { EuroIcon, MapPinIcon, SearchXIcon } from "lucide-react"
 
@@ -8,8 +9,10 @@ import {
   getJobsCollection,
   getSavedJobsCollection,
 } from "@/lib/mongo"
+import { buildJobSearchFilter } from "@/lib/search"
 import { ApplyButton } from "@/components/jobs/apply-button"
 import { SaveButton } from "@/components/jobs/save-button"
+import { JobSearch } from "@/components/jobs/job-search"
 import { PageHeader } from "@/components/dashboard/page-header"
 import { EmptyState } from "@/components/dashboard/empty-state"
 
@@ -26,13 +29,27 @@ const dateFormat = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 })
 
-const SeekerJobsPage = async () => {
+const SeekerJobsPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) => {
+  const { q } = await searchParams
+  const query = typeof q === "string" ? q.trim().slice(0, 100) : ""
+
   const session = await auth.api.getSession({ headers: await headers() })
+
+  // Active jobs, filtered by the search query when one is present.
+  const filter: Record<string, unknown> = { status: "Active" }
+  if (query) {
+    // $regex on an array field (skills) matches any element.
+    Object.assign(filter, buildJobSearchFilter(query, ["skills"]))
+  }
 
   const jobs = await (
     await getJobsCollection()
   )
-    .find({ status: "Active" })
+    .find(filter)
     .sort({ postedAt: -1 })
     .limit(50)
     .toArray()
@@ -71,6 +88,16 @@ const SeekerJobsPage = async () => {
         title="Find Jobs"
         description="Discover roles posted by recruiters on HireLoop."
       />
+
+      {/* Search — URL-driven; the list above re-renders with ?q= */}
+      <JobSearch placeholder="Search for opportunities..." />
+
+      {jobs.length > 0 && query ? (
+        <p className="text-sm text-muted-foreground">
+          {jobs.length} job{jobs.length === 1 ? "" : "s"} matching{" "}
+          <span className="font-medium text-foreground">&ldquo;{query}&rdquo;</span>
+        </p>
+      ) : null}
 
       {jobs.length > 0 ? (
         <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -146,6 +173,20 @@ const SeekerJobsPage = async () => {
             )
           })}
         </ul>
+      ) : query ? (
+        /* Empty state — no jobs match the current search */
+        <EmptyState
+          icon={SearchXIcon}
+          title="No jobs match your search"
+          message={`Nothing found for \u201C${query}\u201D. Try different keywords — or clear the search to browse everything.`}
+        >
+          <Link
+            href="/dashboard/seeker/jobs"
+            className="mt-2 inline-flex h-10 items-center rounded-lg border border-border/60 bg-card px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Clear search
+          </Link>
+        </EmptyState>
       ) : (
         /* Empty state — no active jobs posted yet */
         <EmptyState

@@ -5,6 +5,7 @@ import { BriefcaseBusinessIcon, EyeIcon, PlusIcon, UsersIcon } from "lucide-reac
 
 import { auth } from "@/lib/auth"
 import { getJobsCollection, type JobDoc } from "@/lib/mongo"
+import { buildJobSearchFilter } from "@/lib/search"
 import { JobActions } from "@/components/jobs/job-actions"
 import { PageHeader, PageHeaderAction } from "@/components/dashboard/page-header"
 import { EmptyState } from "@/components/dashboard/empty-state"
@@ -28,16 +29,31 @@ function salaryLabel(job: JobDoc) {
   return job.salaryMin ? `${fmt(job.salaryMin)}+` : `up to ${fmt(job.salaryMax as number)}`
 }
 
-const ManageJobsPage = async () => {
+const ManageJobsPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) => {
+  const { q } = await searchParams
+  const query = typeof q === "string" ? q.trim().slice(0, 100) : ""
+
   const session = await auth.api.getSession({ headers: await headers() })
   const jobs: JobDoc[] = session
-    ? await (
-        await getJobsCollection()
-      )
-        .find({ postedById: session.user.id })
-        .sort({ postedAt: -1 })
-        .limit(50)
-        .toArray()
+    ? await (async () => {
+        const jobsCollection = await getJobsCollection()
+        const filter: Record<string, unknown> = {
+          postedById: session.user.id,
+        }
+        if (query) {
+          // ref is a string field — regex works on it like the text fields.
+          Object.assign(filter, buildJobSearchFilter(query, ["ref"]))
+        }
+        return jobsCollection
+          .find(filter)
+          .sort({ postedAt: -1 })
+          .limit(50)
+          .toArray()
+      })()
     : []
 
   return (

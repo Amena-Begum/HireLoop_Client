@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { BellIcon, SearchIcon } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
@@ -15,10 +15,18 @@ const SEARCH_PLACEHOLDER = {
   admin: "Global search...",
 } as const
 
-type Role = "seeker" | "recruiter" | "admin"
+// Where each role's header search lands.
+const SEARCH_TARGET = {
+  seeker: "/dashboard/seeker/jobs",
+  recruiter: "/dashboard/recruiter/jobs",
+  admin: "/dashboard/admin/jobs",
+} as const
+
+type Role = keyof typeof SEARCH_PLACEHOLDER
 
 function DashboardHeader() {
   const pathname = usePathname()
+  const router = useRouter()
   const { data: session } = authClient.useSession()
 
   const role: Role = pathname.startsWith("/dashboard/admin")
@@ -29,17 +37,26 @@ function DashboardHeader() {
 
   const user = session?.user ?? null
 
+  function handleSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const q = String(new FormData(event.currentTarget).get("search") ?? "").trim()
+    const target = SEARCH_TARGET[role]
+    router.push(q ? `${target}?q=${encodeURIComponent(q)}` : target)
+  }
+
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl sm:gap-4 sm:px-6 lg:px-8">
       <SidebarTrigger aria-label="Toggle sidebar" />
-      <div className="relative min-w-0 flex-1 max-w-xl">
+      <form onSubmit={handleSearch} className="relative min-w-0 flex-1 max-w-xl">
         <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          type="search"
+          name="search"
           aria-label="Search"
           placeholder={SEARCH_PLACEHOLDER[role]}
           className="h-10 bg-card/60 pl-9"
         />
-      </div>
+      </form>
 
       <div className="flex items-center gap-2 sm:gap-3">
         <button

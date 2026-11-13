@@ -3,10 +3,13 @@ import { headers } from "next/headers"
 
 import { auth } from "@/lib/auth"
 import { getJobsCollection } from "@/lib/mongo"
+import { escapeRegex } from "@/lib/search"
 import {
   CURRENCIES,
   EMPLOYMENT_TYPES,
+  JOB_STATUSES,
   WORK_MODES,
+  type JobStatus,
 } from "@/lib/constants"
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "HTTP://localhost:5000"
@@ -19,6 +22,11 @@ function asSalary(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null
   const n = typeof value === "number" ? value : Number(value)
   return Number.isFinite(n) && n >= 0 ? n : null
+}
+
+export const getJobById = async (jobId: string) => {
+  const res = await fetch(`${BASE_URL}/jobs/${jobId}`)
+  return res.json();
 }
 
 function isValidPayload(payload: Record<string, unknown>) {
@@ -134,16 +142,52 @@ export async function GET(request: Request) {
     )
   }
 
+  const role = (session.user as { role?: string }).role ?? "job-seeker"
   const { searchParams } = new URL(request.url)
-  // Default to the signed-in recruiter's own posts; ?all=1 lists everything.
-  const mine = searchParams.get("all") !== "1"
+
+  // Default: the signed-in user's own posts (recruiters post; other roles
+  // simply get an empty list). ?all=1 lists every job — admins only.
+  const all = searchParams.get("all") === "1" && role === "admin"
+
+  // Optional filters — all validated so params can't probe the collection.
+  const statusParam = asString(searchParams.get("status"))
+  const status =
+    statusParam && (JOB_STATUSES as readonly string[]).includes(statusParam)
+      ? (statusParam as JobStatus)
+      : null
+
+  const q = asString(searchParams.get("q"))
+
+  const limitParam = Number(searchParams.get("limit"))
+  const limit =
+    Number.isInteger(limitParam) && limitParam > 0 && limitParam <= 100
+      ? limitParam
+      : 50
+  const pageParam = Number(searchParams.get("page"))
+  const page = Number.isInteger(pageParam) && pageParam > 0 ? pageParam : 1
+
+  const filter: Record<string, unknown> = {}
+  if (!all) {
+    filter.postedById = session.user.id
+  }
+  if (status) {
+    filter.status = status
+  }
+  if (q) {
+    const rx = { $regex: escapeRegex(q), $options: "i" }
+    filter.$or = [{ title: rx }, { company: rx }, { location: rx }]
+  }
 
   const jobs = await getJobsCollection()
-  const rows = await jobs
-    .find(mine ? { postedById: session.user.id } : {})
-    .sort({ postedAt: -1 })
-    .limit(50)
-    .toArray()
+  const [rows, total] = await Promise.all([
+    jobs
+      .find(filter)
+      .sort({ postedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray(),
+    jobs.countDocuments(filter),
+  ])
 
-  return NextResponse.json({ jobs: rows })
+  return NextResponse.json({ jobs: rows, total, page, limit })
 }

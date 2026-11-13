@@ -59,7 +59,23 @@ const jobs = [
   },
 ] as const
 
-const AdminJobsPage = () => {
+const AdminJobsPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) => {
+  const { q } = await searchParams
+  const query = typeof q === "string" ? q.trim().slice(0, 100) : ""
+
+  // Filter the sample rows by the header search when present.
+  const rows = query
+    ? jobs.filter((job) =>
+        [job.title, job.company, job.ref].some((field) =>
+          field.toLowerCase().includes(query.toLowerCase())
+        )
+      )
+    : jobs
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -99,7 +115,7 @@ const AdminJobsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {jobs.map((job) => (
+              {rows.map((job) => (
                 <tr
                   key={job.ref}
                   className="border-b border-border/30 transition-colors last:border-b-0 hover:bg-muted/20"
